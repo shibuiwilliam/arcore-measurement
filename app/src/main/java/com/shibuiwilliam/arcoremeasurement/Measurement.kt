@@ -1,5 +1,6 @@
 package com.shibuiwilliam.arcoremeasurement
 
+import android.annotation.SuppressLint
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.app.Activity
@@ -19,6 +20,8 @@ import com.google.ar.sceneform.rendering.*
 import com.google.ar.sceneform.ux.ArFragment
 import com.google.ar.sceneform.ux.TransformableNode
 import java.util.Objects
+import kotlin.math.pow
+import kotlin.math.sqrt
 
 
 class Measurement : AppCompatActivity(), Scene.OnUpdateListener {
@@ -36,9 +39,9 @@ class Measurement : AppCompatActivity(), Scene.OnUpdateListener {
 
     private var cubeRenderable: ModelRenderable? = null
 
+    private var placedAnchors = Array<Anchor?>(2){null}
+    private var placedAnchorNodes = Array<AnchorNode?>(2){null}
 
-    private var currentAnchor: Anchor? = null
-    private var currentAnchorNode: AnchorNode? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,46 +62,65 @@ class Measurement : AppCompatActivity(), Scene.OnUpdateListener {
 
         configureSpinner()
 
-        initModel()
-
-        
+        initRenderable()
 
 
         arFragment!!.setOnTapArPlaneListener { hitResult: HitResult, plane: Plane?, motionEvent: MotionEvent? ->
             if (cubeRenderable == null) return@setOnTapArPlaneListener
             // Creating Anchor.
-            val anchor = hitResult.createAnchor()
-            val anchorNode =
-                AnchorNode(anchor)
-            anchorNode.setParent(arFragment!!.arSceneView.scene)
-            clearAnchor()
-            currentAnchor = anchor
-            currentAnchorNode = anchorNode
-            val node = TransformableNode(arFragment!!.transformationSystem)
-            node.renderable = cubeRenderable
-            node.setParent(anchorNode)
-            arFragment!!.arSceneView.scene.addOnUpdateListener(this)
-            arFragment!!.arSceneView.scene.addChild(anchorNode)
-            node.select()
+            when (distanceMode){
+                distanceModeArray[0] -> {
+                    clearAllAnchor()
+                    placeAnchor(hitResult, plane, motionEvent, 0)
+                }
+                distanceModeArray[1] -> {
+                    tapDistanceOf2Points(hitResult, plane, motionEvent)
+                }
+                else -> {
+                    clearAllAnchor()
+                    placeAnchor(hitResult, plane, motionEvent, 0)
+                }
+            }
         }
     }
 
-    fun checkIsSupportedDeviceOrFinish(activity: Activity): Boolean {
-        val openGlVersionString =
-            (Objects.requireNonNull(activity.getSystemService(Context.ACTIVITY_SERVICE)) as ActivityManager)
-                .deviceConfigurationInfo
-                .glEsVersion
-        if (openGlVersionString.toDouble() < MIN_OPENGL_VERSION) {
-            Log.e(TAG, "Sceneform requires OpenGL ES 3.0 later")
-            Toast.makeText(activity, "Sceneform requires OpenGL ES 3.0 or later", Toast.LENGTH_LONG)
-                .show()
-            activity.finish()
-            return false
-        }
-        return true
+    private fun placeAnchor(hitResult: HitResult,
+                            plane: Plane?,
+                            motionEvent: MotionEvent?,
+                            anchorIndex: Int){
+        val anchor = hitResult.createAnchor()
+        val anchorNode =
+            AnchorNode(anchor)
+        anchorNode.setParent(arFragment!!.arSceneView.scene)
+        placedAnchors[anchorIndex] = anchor
+        placedAnchorNodes[anchorIndex] = anchorNode
+        val node = TransformableNode(arFragment!!.transformationSystem)
+        node.renderable = cubeRenderable
+        node.setParent(anchorNode)
+        arFragment!!.arSceneView.scene.addOnUpdateListener(this)
+        arFragment!!.arSceneView.scene.addChild(anchorNode)
+        node.select()
     }
 
-    private fun initModel() {
+    private fun tapDistanceOf2Points(hitResult: HitResult,
+                                     plane: Plane?,
+                                     motionEvent: MotionEvent?){
+        if (placedAnchorNodes[0] == null){
+            clearAllAnchor()
+            placeAnchor(hitResult, plane, motionEvent, 0)
+        }
+        else if (placedAnchorNodes[0] != null && placedAnchorNodes[1] == null){
+            placeAnchor(hitResult, plane, motionEvent, 1)
+        }
+        else {
+            clearAllAnchor()
+            placeAnchor(hitResult, plane, motionEvent, 0)
+        }
+    }
+
+
+
+    private fun initRenderable() {
         MaterialFactory.makeTransparentWithColor(
             this,
             com.google.ar.sceneform.rendering.Color(Color.RED)
@@ -130,57 +152,122 @@ class Measurement : AppCompatActivity(), Scene.OnUpdateListener {
                 distanceMode = spinnerParent.selectedItem as String
                 when(distanceMode){
                     distanceModeArrayList[0] ->{
-                        distanceMode = distanceModeArrayList[0]
-                        titleTextView!!.text = distanceModeArrayList[0]
-                        distanceModeTextView!!.text = distanceModeArrayList[0]
+                        setMode()
                     }
                     distanceModeArrayList[1] -> {
-                        distanceMode = distanceModeArrayList[1]
-                        titleTextView!!.text = distanceModeArrayList[1]
-                        distanceModeTextView!!.text = distanceModeArrayList[1]
+                        setMode()
                     }
                     else -> {
-                        distanceMode = distanceModeArrayList[0]
-                        titleTextView!!.text = distanceModeArrayList[0]
-                        distanceModeTextView!!.text = distanceModeArrayList[0]
+                        setMode()
                     }
                 }
                 Log.i(TAG, "Selected arcore focus on ${distanceMode}")
             }
             override fun onNothingSelected(parent: AdapterView<*>?) {
-                distanceMode = distanceModeArrayList[0]
-                titleTextView!!.text = distanceModeArrayList[0]
-                distanceModeTextView!!.text = distanceModeArrayList[0]
+                setMode()
             }
         }
     }
 
-    private fun clearAnchor() {
-        currentAnchor = null
-        if (currentAnchorNode != null) {
-            arFragment!!.arSceneView.scene.removeChild(currentAnchorNode)
-            currentAnchorNode!!.anchor!!.detach()
-            currentAnchorNode!!.setParent(null)
-            currentAnchorNode = null
+    private fun setMode(){
+        titleTextView!!.text = distanceMode
+        distanceModeTextView!!.text = distanceMode
+    }
+
+    private fun clearAllAnchor(){
+        for (i in 0 until placedAnchors.size){
+            clearAnchor(i)
         }
     }
 
-    override fun onUpdate(frameTime: FrameTime) {
-        val frame = arFragment!!.arSceneView.arFrame
-        Log.d(
-            TAG,
-            "onUpdateframe... current anchor node " + (currentAnchorNode == null)
-        )
-        if (currentAnchorNode != null) {
-            val objectPose = currentAnchor!!.pose
-            val cameraPose = frame!!.camera.pose
-            val dx = objectPose.tx() - cameraPose.tx()
-            val dy = objectPose.ty() - cameraPose.ty()
-            val dz = objectPose.tz() - cameraPose.tz()
-            ///Compute the straight-line distance.
-            val distanceCM =
-                Math.sqrt(dx * dx + dy * dy + (dz * dz).toDouble()).toFloat() * 100
-            distanceTextView!!.text = "${"%.2f".format(distanceCM)} cm"
+    private fun clearAnchor(anchorIndex: Int) {
+        placedAnchors[anchorIndex] = null
+        if (placedAnchorNodes[anchorIndex] != null) {
+            arFragment!!.arSceneView.scene.removeChild(placedAnchorNodes[anchorIndex])
+            placedAnchorNodes[anchorIndex]!!.anchor!!.detach()
+            placedAnchorNodes[anchorIndex]!!.setParent(null)
+            placedAnchorNodes[anchorIndex] = null
         }
+    }
+
+    @SuppressLint("SetTextI18n")
+    override fun onUpdate(frameTime: FrameTime) {
+        when(distanceMode) {
+            distanceModeArrayList[0] -> {
+                measureDistanceFromCamera()
+            }
+            distanceModeArrayList[1] -> {
+                measureDistanceOf2Points()
+            }
+            else -> {
+                measureDistanceFromCamera()
+            }
+        }
+    }
+
+    private fun measureDistanceFromCamera(){
+        val frame = arFragment!!.arSceneView.arFrame
+        if (placedAnchorNodes[0] != null) {
+            val objectPose = placedAnchors[0]!!.pose
+            val cameraPose = frame!!.camera.pose
+            val distanceMeter = calculateDistance(objectPose, cameraPose)
+            val distanceCM = changeUnit(distanceMeter, "cm")
+            val distanceCMFloor = "%.2f".format(distanceCM)
+            distanceTextView!!.text = "${distanceCMFloor} cm"
+            Log.d(TAG, "distance: ${distanceCMFloor} cm")
+        }
+        else {
+            distanceTextView!!.text = "Tap somewhere"
+        }
+    }
+
+    private fun measureDistanceOf2Points(){
+        if (placedAnchorNodes[0] != null && placedAnchorNodes[1] != null) {
+            val objectPose0 = placedAnchors[0]!!.pose
+            val objectPose1 = placedAnchors[1]!!.pose
+            val distanceMeter = calculateDistance(objectPose0, objectPose1)
+            val distanceCM = changeUnit(distanceMeter, "cm")
+            val distanceCMFloor = "%.2f".format(distanceCM)
+            distanceTextView!!.text = "${distanceCMFloor} cm"
+            Log.d(TAG, "distance: ${distanceCMFloor} cm")
+        }
+        else {
+            distanceTextView!!.text = "Tap 2 points"
+        }
+    }
+
+    private fun calculateDistance(objectPose0: Pose, objectPose1: Pose): Float{
+        val dx = objectPose0.tx() - objectPose1.tx()
+        val dy = objectPose0.ty() - objectPose1.ty()
+        val dz = objectPose0.tz() - objectPose1.tz()
+        val distanceMeter =
+            sqrt(dx.pow(2) + dy.pow(2) + dz.pow(2))
+        return distanceMeter
+    }
+
+    private fun changeUnit(distanceMeter: Float, unit: String): Float{
+        return when(unit){
+            "cm" -> distanceMeter * 100
+            "mm" -> distanceMeter * 1000
+            else -> distanceMeter
+        }
+    }
+
+    private fun checkIsSupportedDeviceOrFinish(activity: Activity): Boolean {
+        val openGlVersionString =
+            (Objects.requireNonNull(activity
+                .getSystemService(Context.ACTIVITY_SERVICE)) as ActivityManager)
+                .deviceConfigurationInfo
+                .glEsVersion
+        if (openGlVersionString.toDouble() < MIN_OPENGL_VERSION) {
+            Log.e(TAG, "Sceneform requires OpenGL ES 3.0 later")
+            Toast.makeText(activity,
+                "Sceneform requires OpenGL ES 3.0 or later",
+                Toast.LENGTH_LONG)
+                .show()
+            activity.finish()
+            return false
+        }
+        return true
     }
 }

@@ -194,14 +194,17 @@ class Measurement : AppCompatActivity(), Scene.OnUpdateListener {
                     distanceModeArrayList[0] ->{
                         clearAllAnchor()
                         setMode()
+                        toastDistanceFromCamera()
                     }
                     distanceModeArrayList[1] -> {
                         clearAllAnchor()
                         setMode()
+                        toastDistanceOf2Points()
                     }
                     else -> {
                         clearAllAnchor()
                         setMode()
+                        toastDistanceFromCamera()
                     }
                 }
                 Log.i(TAG, "Selected arcore focus on ${distanceMode}")
@@ -209,6 +212,7 @@ class Measurement : AppCompatActivity(), Scene.OnUpdateListener {
             override fun onNothingSelected(parent: AdapterView<*>?) {
                 clearAllAnchor()
                 setMode()
+                toastDistanceFromCamera()
             }
         }
     }
@@ -268,12 +272,6 @@ class Measurement : AppCompatActivity(), Scene.OnUpdateListener {
             textView.text = "${distanceCMFloor} cm"
             Log.d(TAG, "distance: ${distanceCMFloor} cm")
         }
-        else {
-            Toast.makeText(this,
-                "Find plane and tap somewhere",
-                Toast.LENGTH_LONG)
-                .show()
-        }
     }
 
     private fun measureDistanceOf2Points(){
@@ -287,12 +285,6 @@ class Measurement : AppCompatActivity(), Scene.OnUpdateListener {
                 .findViewById<TextView>(R.id.distanceCard)
             textView.text = "${distanceCMFloor} cm"
             Log.d(TAG, "distance: ${distanceCMFloor} cm")
-        }
-        else {
-            Toast.makeText(this,
-                "Find plane and tap 2 points",
-                Toast.LENGTH_LONG)
-                .show()
         }
     }
 
@@ -330,6 +322,20 @@ class Measurement : AppCompatActivity(), Scene.OnUpdateListener {
             "mm" -> distanceMeter * 1000
             else -> distanceMeter
         }
+    }
+
+    private fun toastDistanceFromCamera(){
+        Toast.makeText(this@Measurement,
+            "Find plane and tap somewhere",
+            Toast.LENGTH_LONG)
+            .show()
+    }
+
+    private fun toastDistanceOf2Points(){
+        Toast.makeText(this@Measurement,
+            "Find plane and tap 2 points",
+            Toast.LENGTH_LONG)
+            .show()
     }
 
     private fun checkIsSupportedDeviceOrFinish(activity: Activity): Boolean {

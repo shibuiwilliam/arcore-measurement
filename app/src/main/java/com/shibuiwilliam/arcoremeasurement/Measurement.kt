@@ -31,9 +31,7 @@ class Measurement : AppCompatActivity(), Scene.OnUpdateListener {
     private val TAG: String = Measurement::class.java.getSimpleName()
 
     private var arFragment: ArFragment? = null
-    private var titleTextView: TextView? = null
     private var distanceModeTextView: TextView? = null
-    private var distanceTextView: TextView? = null
 
     private lateinit var distanceCardViewRenderable: ViewRenderable
 
@@ -45,7 +43,6 @@ class Measurement : AppCompatActivity(), Scene.OnUpdateListener {
 
     private var placedAnchors = Array<Anchor?>(2){null}
     private var placedAnchorNodes = Array<AnchorNode?>(2){null}
-    private var transformableNodes = Array<TransformableNode?>(2){null}
     private var midAnchors = Array<Anchor?>(2){null}
     private var midAnchorNodes = Array<AnchorNode?>(2){null}
 
@@ -64,8 +61,6 @@ class Measurement : AppCompatActivity(), Scene.OnUpdateListener {
         }
         arFragment = supportFragmentManager.findFragmentById(R.id.sceneform_fragment) as ArFragment?
         distanceModeTextView = findViewById(R.id.distance_view)
-        distanceTextView = findViewById(R.id.distance)
-        titleTextView = findViewById(R.id.title)
 
         configureSpinner()
 
@@ -219,7 +214,6 @@ class Measurement : AppCompatActivity(), Scene.OnUpdateListener {
     }
 
     private fun setMode(){
-        titleTextView!!.text = distanceMode
         distanceModeTextView!!.text = distanceMode
     }
 
@@ -269,14 +263,16 @@ class Measurement : AppCompatActivity(), Scene.OnUpdateListener {
             val distanceMeter = calculateDistance(objectPose, cameraPose)
             val distanceCM = changeUnit(distanceMeter, "cm")
             val distanceCMFloor = "%.2f".format(distanceCM)
-            distanceTextView!!.text = "${distanceCMFloor} cm"
             val textView = (distanceCardViewRenderable.view as LinearLayout)
                 .findViewById<TextView>(R.id.distanceCard)
             textView.text = "${distanceCMFloor} cm"
             Log.d(TAG, "distance: ${distanceCMFloor} cm")
         }
         else {
-            distanceTextView!!.text = "Tap somewhere"
+            Toast.makeText(this,
+                "Find plane and tap somewhere",
+                Toast.LENGTH_LONG)
+                .show()
         }
     }
 
@@ -287,14 +283,16 @@ class Measurement : AppCompatActivity(), Scene.OnUpdateListener {
             val distanceMeter = calculateDistance(objectPose0, objectPose1)
             val distanceCM = changeUnit(distanceMeter, "cm")
             val distanceCMFloor = "%.2f".format(distanceCM)
-            distanceTextView!!.text = "${distanceCMFloor} cm"
             val textView = (distanceCardViewRenderable.view as LinearLayout)
                 .findViewById<TextView>(R.id.distanceCard)
             textView.text = "${distanceCMFloor} cm"
             Log.d(TAG, "distance: ${distanceCMFloor} cm")
         }
         else {
-            distanceTextView!!.text = "Tap 2 points"
+            Toast.makeText(this,
+                "Find plane and tap 2 points",
+                Toast.LENGTH_LONG)
+                .show()
         }
     }
 

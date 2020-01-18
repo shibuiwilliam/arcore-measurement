@@ -12,17 +12,6 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/title"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="0.5"
-            android:layout_gravity="bottom"
-            android:gravity="center"
-            android:padding="8dp"
-            android:textColor="@android:color/white"
-            android:textSize="20sp" />
-
         <fragment
             android:name="com.google.ar.sceneform.ux.ArFragment"
             android:id="@+id/sceneform_fragment"
@@ -32,17 +21,6 @@
 
         <TextView
             android:id="@+id/distance_view"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="0.5"
-            android:layout_gravity="bottom"
-            android:gravity="center"
-            android:padding="8dp"
-            android:textColor="@android:color/white"
-            android:textSize="20sp" />
-
-        <TextView
-            android:id="@+id/distance"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="0.5"

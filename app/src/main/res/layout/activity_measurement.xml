@@ -17,7 +17,7 @@
             android:id="@+id/sceneform_fragment"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="8"/>
+            android:layout_weight="9"/>
 
         <TextView
             android:id="@+id/distance_view"
@@ -28,7 +28,7 @@
             android:gravity="center"
             android:padding="8dp"
             android:textColor="@android:color/white"
-            android:textSize="20sp" />
+            android:textSize="14sp" />
 
         <Spinner
             android:id="@+id/distance_mode_spinner"
@@ -36,6 +36,18 @@
             android:layout_height="0dp"
             android:layout_weight="0.5"
             android:spinnerMode="dialog" />
+
+        <Button
+            android:id="@+id/clearButton"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="0.5"
+            android:background="#18489B"
+            android:fontFamily="sans-serif-thin"
+            android:text="@string/clear"
+            android:textAlignment="center"
+            android:textColor="@android:color/white"
+            android:textSize="14sp" />
 
     </LinearLayout>
 

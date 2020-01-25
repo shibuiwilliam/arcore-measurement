@@ -5,8 +5,8 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.app.Activity
 import android.app.ActivityManager
+import android.app.AlertDialog
 import android.content.Context
-import android.content.Intent
 import android.graphics.Color
 import android.util.Log
 import android.view.MotionEvent
@@ -15,9 +15,7 @@ import android.widget.*
 import com.google.ar.core.*
 import com.google.ar.sceneform.AnchorNode
 import com.google.ar.sceneform.FrameTime
-import com.google.ar.sceneform.HitTestResult
 import com.google.ar.sceneform.Scene
-import com.google.ar.sceneform.math.Quaternion
 import com.google.ar.sceneform.math.Vector3
 import com.google.ar.sceneform.rendering.*
 import com.google.ar.sceneform.ux.ArFragment
@@ -36,7 +34,7 @@ class Measurement : AppCompatActivity(), Scene.OnUpdateListener {
     private var distanceModeTextView: TextView? = null
 
     private lateinit var distanceCardViewRenderable: ViewRenderable
-    private lateinit var pointTextViewRenderable: ViewRenderable
+    private lateinit var pointTextView: TextView
     private lateinit var cubeRenderable: ModelRenderable
 
     private lateinit var distanceModeSpinner: Spinner
@@ -77,7 +75,7 @@ class Measurement : AppCompatActivity(), Scene.OnUpdateListener {
             when (distanceMode){
                 distanceModeArray[0] -> {
                     clearAllAnchors()
-                    placeAnchor(hitResult, plane, motionEvent)
+                    placeAnchor(hitResult, plane, motionEvent, distanceCardViewRenderable)
                 }
                 distanceModeArray[1] -> {
                     tapDistanceOf2Points(hitResult, plane, motionEvent)
@@ -87,130 +85,16 @@ class Measurement : AppCompatActivity(), Scene.OnUpdateListener {
                 }
                 else -> {
                     clearAllAnchors()
-                    placeAnchor(hitResult, plane, motionEvent)
+                    placeAnchor(hitResult, plane, motionEvent, distanceCardViewRenderable)
                 }
             }
-        }
-    }
-
-    private fun placeAnchor(hitResult: HitResult,
-                            plane: Plane?,
-                            motionEvent: MotionEvent?){
-        val anchor = hitResult.createAnchor()
-        val anchorNode = AnchorNode(anchor).apply {
-            isSmoothed = true
-            setParent(arFragment!!.arSceneView.scene)
-        }
-        placedAnchors.add(anchor)
-        placedAnchorNodes.add(anchorNode)
-        val node = TransformableNode(arFragment!!.transformationSystem)
-//            .apply{
-//            rotationController.isEnabled = false
-//            scaleController.isEnabled = false
-//            translationController.isEnabled = true
-//            renderable = when(distanceMode){
-//                distanceModeArrayList[0] -> distanceCardViewRenderable
-//                distanceModeArrayList[1] -> cubeRenderable
-//                distanceModeArrayList[2] -> buildPointTextRenderable()
-//                else -> cubeRenderable
-//            }
-//            setParent(anchorNode)
-//        }
-        node.renderable = when(distanceMode){
-            distanceModeArrayList[0] -> distanceCardViewRenderable
-            distanceModeArrayList[1] -> cubeRenderable
-            distanceModeArrayList[2] -> {
-                buildPointTextRenderable()
-                pointTextViewRenderable
-            }
-            else -> cubeRenderable
-        }
-        node.rotationController.isEnabled = false
-        node.scaleController.isEnabled = false
-        node.translationController.isEnabled = true
-        node.setParent(anchorNode)
-
-        arFragment!!.arSceneView.scene.addOnUpdateListener(this)
-        arFragment!!.arSceneView.scene.addChild(anchorNode)
-        node.select()
-    }
-
-    private fun buildPointTextRenderable(){
-        ViewRenderable
-            .builder()
-            .setView(this@Measurement, R.layout.piont_text_layout)
-            .build()
-            .thenAccept{
-                pointTextViewRenderable = it
-                pointTextViewRenderable.isShadowReceiver = false
-                pointTextViewRenderable.isShadowCaster = false
-                val textView = pointTextViewRenderable.getView() as TextView
-                textView.setText(placedAnchors.size)
-            }
-    }
-
-    private fun tapDistanceOf2Points(hitResult: HitResult,
-                                     plane: Plane?,
-                                     motionEvent: MotionEvent?){
-        if (placedAnchorNodes.size == 0){
-            placeAnchor(hitResult, plane, motionEvent)
-        }
-        else if (placedAnchorNodes.size == 1){
-            placeAnchor(hitResult, plane, motionEvent)
-
-            val midPosition = floatArrayOf(
-                (placedAnchorNodes[0].worldPosition.x + placedAnchorNodes[1].worldPosition.x) / 2,
-                (placedAnchorNodes[0].worldPosition.y + placedAnchorNodes[1].worldPosition.y) / 2,
-                (placedAnchorNodes[0].worldPosition.z + placedAnchorNodes[1].worldPosition.z) / 2)
-            val quaternion = floatArrayOf(0.0f,0.0f,0.0f,0.0f)
-
-            val pose = Pose(midPosition, quaternion)
-            val anchor = arFragment!!.arSceneView.session!!.createAnchor(pose)
-            val anchorNode = AnchorNode(anchor).apply {
-                isSmoothed = true
-                setParent(arFragment!!.arSceneView.scene)
-            }
-
-            midAnchors.add(anchor)
-            midAnchorNodes.add(anchorNode)
-            val node = TransformableNode(arFragment!!.transformationSystem).apply{
-                rotationController.isEnabled = false
-                scaleController.isEnabled = false
-                translationController.isEnabled = true
-                renderable = distanceCardViewRenderable
-                setParent(anchorNode)
-            }
-            arFragment!!.arSceneView.scene.addOnUpdateListener(this)
-            arFragment!!.arSceneView.scene.addChild(anchorNode)
-        }
-        else {
-            clearAllAnchors()
-            placeAnchor(hitResult, plane, motionEvent)
-        }
-    }
-
-    private fun tapDistanceOfMultiplePoints(hitResult: HitResult,
-                                            plane: Plane?,
-                                            motionEvent: MotionEvent?){
-        if (placedAnchorNodes.size == 0){
-            placeAnchor(hitResult, plane, motionEvent)
-            val textView = (pointTextViewRenderable.view as LinearLayout)
-                .findViewById<TextView>(R.id.pointCard)
-            textView.text = "${placedAnchors.size}"
-        }
-        else if (placedAnchorNodes.size > 0){
-            placeAnchor(hitResult, plane, motionEvent)
-            val textView = (pointTextViewRenderable.view as LinearLayout)
-                .findViewById<TextView>(R.id.pointCard)
-            textView.text = "${placedAnchors.size}"
         }
     }
 
     private fun initRenderable() {
         MaterialFactory.makeTransparentWithColor(
             this,
-            arColor(Color.RED)
-        )
+            arColor(Color.RED))
             .thenAccept { material: Material? ->
                 cubeRenderable = ShapeFactory.makeSphere(
                     0.01f,
@@ -218,6 +102,13 @@ class Measurement : AppCompatActivity(), Scene.OnUpdateListener {
                     material)
                 cubeRenderable.setShadowCaster(false)
                 cubeRenderable.setShadowReceiver(false)
+            }
+            .exceptionally {
+                val builder = AlertDialog.Builder(this)
+                builder.setMessage(it.message).setTitle("Error")
+                val dialog = builder.create()
+                dialog.show()
+                return@exceptionally null
             }
 
         ViewRenderable
@@ -228,6 +119,13 @@ class Measurement : AppCompatActivity(), Scene.OnUpdateListener {
                 distanceCardViewRenderable = it
                 distanceCardViewRenderable.isShadowCaster = false
                 distanceCardViewRenderable.isShadowReceiver = false
+            }
+            .exceptionally {
+                val builder = AlertDialog.Builder(this)
+                builder.setMessage(it.message).setTitle("Error")
+                val dialog = builder.create()
+                dialog.show()
+                return@exceptionally null
             }
     }
 
@@ -292,6 +190,170 @@ class Measurement : AppCompatActivity(), Scene.OnUpdateListener {
         midAnchorNodes.clear()
     }
 
+    private fun placeAnchor(hitResult: HitResult,
+                            plane: Plane?,
+                            motionEvent: MotionEvent?){
+        val anchor = hitResult.createAnchor()
+        val anchorNode = AnchorNode(anchor).apply {
+            isSmoothed = true
+            setParent(arFragment!!.arSceneView.scene)
+        }
+        placedAnchors.add(anchor)
+        placedAnchorNodes.add(anchorNode)
+
+        val node = TransformableNode(arFragment!!.transformationSystem).apply{
+            rotationController.isEnabled = false
+            scaleController.isEnabled = false
+            translationController.isEnabled = true
+            renderable = when(distanceMode){
+                distanceModeArrayList[0] -> distanceCardViewRenderable
+                distanceModeArrayList[1] -> cubeRenderable
+                else -> distanceCardViewRenderable
+            }
+            setParent(anchorNode)
+        }
+
+        arFragment!!.arSceneView.scene.addOnUpdateListener(this)
+        arFragment!!.arSceneView.scene.addChild(anchorNode)
+        node.select()
+    }
+
+    private fun placeAnchor(hitResult: HitResult,
+                            plane: Plane?,
+                            motionEvent: MotionEvent?,
+                            renderable: Renderable){
+        val anchor = hitResult.createAnchor()
+        placedAnchors.add(anchor)
+
+        val anchorNode = AnchorNode(anchor).apply {
+            isSmoothed = true
+            setParent(arFragment!!.arSceneView.scene)
+        }
+        placedAnchorNodes.add(anchorNode)
+
+        val node = TransformableNode(arFragment!!.transformationSystem)
+            .apply{
+                this.rotationController.isEnabled = false
+                this.scaleController.isEnabled = false
+                this.translationController.isEnabled = if (distanceMode == distanceModeArrayList[2]) true else false
+                this.renderable = renderable
+                setParent(anchorNode)
+            }
+
+        arFragment!!.arSceneView.scene.addOnUpdateListener(this)
+        arFragment!!.arSceneView.scene.addChild(anchorNode)
+        node.select()
+    }
+
+
+    private fun tapDistanceOf2Points(hitResult: HitResult,
+                                     plane: Plane?,
+                                     motionEvent: MotionEvent?){
+        if (placedAnchorNodes.size == 0){
+            placeAnchor(hitResult, plane, motionEvent, cubeRenderable)
+        }
+        else if (placedAnchorNodes.size == 1){
+            placeAnchor(hitResult, plane, motionEvent, cubeRenderable)
+
+            val midPosition = floatArrayOf(
+                (placedAnchorNodes[0].worldPosition.x + placedAnchorNodes[1].worldPosition.x) / 2,
+                (placedAnchorNodes[0].worldPosition.y + placedAnchorNodes[1].worldPosition.y) / 2,
+                (placedAnchorNodes[0].worldPosition.z + placedAnchorNodes[1].worldPosition.z) / 2)
+            val quaternion = floatArrayOf(0.0f,0.0f,0.0f,0.0f)
+            val pose = Pose(midPosition, quaternion)
+
+            placeMidAnchor(pose, plane, motionEvent, distanceCardViewRenderable)
+        }
+        else {
+            clearAllAnchors()
+            placeAnchor(hitResult, plane, motionEvent, cubeRenderable)
+        }
+    }
+
+    private fun placeMidAnchor(pose: Pose,
+                               plane: Plane?,
+                               motionEvent: MotionEvent?,
+                               renderable: Renderable){
+        val anchor = arFragment!!.arSceneView.session!!.createAnchor(pose)
+        midAnchors.add(anchor)
+
+        val anchorNode = AnchorNode(anchor).apply {
+            isSmoothed = true
+            setParent(arFragment!!.arSceneView.scene)
+        }
+        midAnchorNodes.add(anchorNode)
+
+        val node = TransformableNode(arFragment!!.transformationSystem).apply{
+            this.rotationController.isEnabled = false
+            this.scaleController.isEnabled = false
+            this.translationController.isEnabled = if (distanceMode == distanceModeArrayList[2]) true else false
+            this.renderable = renderable
+            setParent(anchorNode)
+        }
+        arFragment!!.arSceneView.scene.addOnUpdateListener(this)
+        arFragment!!.arSceneView.scene.addChild(anchorNode)
+    }
+
+    private fun tapDistanceOfMultiplePoints(hitResult: HitResult,
+                                            plane: Plane?,
+                                            motionEvent: MotionEvent?){
+        ViewRenderable
+            .builder()
+            .setView(this, R.layout.point_text_layout)
+            .build()
+            .thenAccept{
+                it.isShadowReceiver = false
+                it.isShadowCaster = false
+                pointTextView = it.getView() as TextView
+                pointTextView.setText(placedAnchors.size.toString())
+                placeAnchor(hitResult, plane, motionEvent, it)
+            }
+            .exceptionally {
+                val builder = AlertDialog.Builder(this)
+                builder.setMessage(it.message).setTitle("Error")
+                val dialog = builder.create()
+                dialog.show()
+                return@exceptionally null
+            }
+        Log.i(TAG, "${placedAnchorNodes.size}")
+        if (placedAnchorNodes.size > 0){
+            for (i in 0 until placedAnchorNodes.size){
+                for (j in i+1 until placedAnchorNodes.size){
+                    val midPosition = floatArrayOf(
+                        (placedAnchorNodes[i].worldPosition.x + placedAnchorNodes[j].worldPosition.x) / 2,
+                        (placedAnchorNodes[i].worldPosition.y + placedAnchorNodes[j].worldPosition.y) / 2,
+                        (placedAnchorNodes[i].worldPosition.z + placedAnchorNodes[j].worldPosition.z) / 2)
+                    val quaternion = floatArrayOf(0.0f,0.0f,0.0f,0.0f)
+                    val pose = Pose(midPosition, quaternion)
+
+                    val distanceMeter = calculateDistance(
+                        placedAnchorNodes[i].worldPosition,
+                        placedAnchorNodes[j].worldPosition)
+                    val distanceCM = changeUnit(distanceMeter, "cm")
+                    val distanceCMFloor = "${i} - ${j}: %.2f".format(distanceCM)
+
+                    ViewRenderable
+                        .builder()
+                        .setView(this, R.layout.point_text_layout)
+                        .build()
+                        .thenAccept{
+                            it.isShadowReceiver = false
+                            it.isShadowCaster = false
+                            pointTextView = it.getView() as TextView
+                            pointTextView.setText(distanceCMFloor)
+                            placeMidAnchor(pose, plane, motionEvent, it)
+                        }
+                        .exceptionally {
+                            val builder = AlertDialog.Builder(this)
+                            builder.setMessage(it.message).setTitle("Error")
+                            val dialog = builder.create()
+                            dialog.show()
+                            return@exceptionally null
+                        }
+                }
+            }
+        }
+    }
 
     @SuppressLint("SetTextI18n")
     override fun onUpdate(frameTime: FrameTime) {

@@ -7,12 +7,10 @@ import android.app.Activity
 import android.app.ActivityManager
 import android.app.AlertDialog
 import android.content.Context
-import android.content.res.ColorStateList
 import android.graphics.Color
 import android.util.Log
 import android.view.MotionEvent
 import android.view.View
-import android.view.ViewGroup
 import android.widget.*
 import com.google.ar.core.*
 import com.google.ar.sceneform.AnchorNode
@@ -144,7 +142,7 @@ class Measurement : AppCompatActivity(), Scene.OnUpdateListener {
             arColor(Color.RED))
             .thenAccept { material: Material? ->
                 cubeRenderable = ShapeFactory.makeSphere(
-                    0.03f,
+                    0.02f,
                     Vector3.zero(),
                     material)
                 cubeRenderable!!.setShadowCaster(false)
@@ -487,14 +485,4 @@ class Measurement : AppCompatActivity(), Scene.OnUpdateListener {
         }
         return true
     }
-}
-
-fun makeCombinationOf2(arrayList: ArrayList<Int>): ArrayList<Array<Int>>{
-    val combArrayList = ArrayList<Array<Int>>()
-    for (i in 0 until arrayList.size - 1){
-        for (j in i+1 until arrayList.size){
-            combArrayList.add(arrayOf(arrayList[i], arrayList[j]))
-        }
-    }
-    return combArrayList
 }

@@ -9,12 +9,14 @@ import android.app.AlertDialog
 import android.content.Context
 import android.graphics.Color
 import android.util.Log
+import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.widget.*
 import com.google.ar.core.*
 import com.google.ar.sceneform.AnchorNode
 import com.google.ar.sceneform.FrameTime
+import com.google.ar.sceneform.Node
 import com.google.ar.sceneform.Scene
 import com.google.ar.sceneform.math.Vector3
 import com.google.ar.sceneform.rendering.*
@@ -35,6 +37,20 @@ class Measurement : AppCompatActivity(), Scene.OnUpdateListener {
     private var distanceModeTextView: TextView? = null
     private lateinit var pointTextView: TextView
 
+    private lateinit var arrow1UpLinearLayout: LinearLayout
+    private lateinit var arrow1DownLinearLayout: LinearLayout
+    private lateinit var arrow1UpView: ImageView
+    private lateinit var arrow1DownView: ImageView
+    private lateinit var arrow1UpRenderable: Renderable
+    private lateinit var arrow1DownRenderable: Renderable
+
+    private lateinit var arrow10UpLinearLayout: LinearLayout
+    private lateinit var arrow10DownLinearLayout: LinearLayout
+    private lateinit var arrow10UpView: ImageView
+    private lateinit var arrow10DownView: ImageView
+    private lateinit var arrow10UpRenderable: Renderable
+    private lateinit var arrow10DownRenderable: Renderable
+
     private lateinit var multipleDistanceTableLayout: TableLayout
 
     private var cubeRenderable: ModelRenderable? = null
@@ -44,11 +60,11 @@ class Measurement : AppCompatActivity(), Scene.OnUpdateListener {
     private val distanceModeArrayList = ArrayList<String>()
     private var distanceMode: String = ""
 
-
     private val placedAnchors = ArrayList<Anchor>()
     private val placedAnchorNodes = ArrayList<AnchorNode>()
     private val midAnchors: MutableMap<String, Anchor> = mutableMapOf()
     private val midAnchorNodes: MutableMap<String, AnchorNode> = mutableMapOf()
+    private val fromGroundNodes = ArrayList<List<Node>>()
 
     private val multipleDistances = Array(Constants.maxNumMultiplePoints,
         {Array<TextView?>(Constants.maxNumMultiplePoints){null} })
@@ -71,9 +87,11 @@ class Measurement : AppCompatActivity(), Scene.OnUpdateListener {
         arFragment = supportFragmentManager.findFragmentById(R.id.sceneform_fragment) as ArFragment?
         distanceModeTextView = findViewById(R.id.distance_view)
         multipleDistanceTableLayout = findViewById(R.id.multiple_distance_table)
+
         initCM = resources.getString(R.string.initCM)
 
         configureSpinner()
+        initArrowView()
         initRenderable()
         clearButton()
 
@@ -90,6 +108,9 @@ class Measurement : AppCompatActivity(), Scene.OnUpdateListener {
                 }
                 distanceModeArrayList[2] -> {
                     tapDistanceOfMultiplePoints(hitResult)
+                }
+                distanceModeArrayList[3] -> {
+                    tapDistanceFromGround(hitResult)
                 }
                 else -> {
                     clearAllAnchors()
@@ -136,6 +157,44 @@ class Measurement : AppCompatActivity(), Scene.OnUpdateListener {
         }
     }
 
+    private fun initArrowView(){
+        arrow1UpLinearLayout = LinearLayout(this)
+        arrow1UpLinearLayout.orientation = LinearLayout.VERTICAL
+        arrow1UpLinearLayout.gravity = Gravity.CENTER
+        arrow1UpView = ImageView(this)
+        arrow1UpView.setImageResource(R.drawable.arrow_1up)
+        arrow1UpLinearLayout.addView(arrow1UpView,
+            Constants.arrowViewSize,
+            Constants.arrowViewSize)
+
+        arrow1DownLinearLayout = LinearLayout(this)
+        arrow1DownLinearLayout.orientation = LinearLayout.VERTICAL
+        arrow1DownLinearLayout.gravity = Gravity.CENTER
+        arrow1DownView = ImageView(this)
+        arrow1DownView.setImageResource(R.drawable.arrow_1down)
+        arrow1DownLinearLayout.addView(arrow1DownView,
+            Constants.arrowViewSize,
+            Constants.arrowViewSize)
+
+        arrow10UpLinearLayout = LinearLayout(this)
+        arrow10UpLinearLayout.orientation = LinearLayout.VERTICAL
+        arrow10UpLinearLayout.gravity = Gravity.CENTER
+        arrow10UpView = ImageView(this)
+        arrow10UpView.setImageResource(R.drawable.arrow_10up)
+        arrow10UpLinearLayout.addView(arrow10UpView,
+            Constants.arrowViewSize,
+            Constants.arrowViewSize)
+
+        arrow10DownLinearLayout = LinearLayout(this)
+        arrow10DownLinearLayout.orientation = LinearLayout.VERTICAL
+        arrow10DownLinearLayout.gravity = Gravity.CENTER
+        arrow10DownView = ImageView(this)
+        arrow10DownView.setImageResource(R.drawable.arrow_10down)
+        arrow10DownLinearLayout.addView(arrow10DownView,
+            Constants.arrowViewSize,
+            Constants.arrowViewSize)
+    }
+
     private fun initRenderable() {
         MaterialFactory.makeTransparentWithColor(
             this,
@@ -164,6 +223,74 @@ class Measurement : AppCompatActivity(), Scene.OnUpdateListener {
                 distanceCardViewRenderable = it
                 distanceCardViewRenderable!!.isShadowCaster = false
                 distanceCardViewRenderable!!.isShadowReceiver = false
+            }
+            .exceptionally {
+                val builder = AlertDialog.Builder(this)
+                builder.setMessage(it.message).setTitle("Error")
+                val dialog = builder.create()
+                dialog.show()
+                return@exceptionally null
+            }
+
+        ViewRenderable
+            .builder()
+            .setView(this, arrow1UpLinearLayout)
+            .build()
+            .thenAccept{
+                arrow1UpRenderable = it
+                arrow1UpRenderable.isShadowCaster = false
+                arrow1UpRenderable.isShadowReceiver = false
+            }
+            .exceptionally {
+                val builder = AlertDialog.Builder(this)
+                builder.setMessage(it.message).setTitle("Error")
+                val dialog = builder.create()
+                dialog.show()
+                return@exceptionally null
+            }
+
+        ViewRenderable
+            .builder()
+            .setView(this, arrow1DownLinearLayout)
+            .build()
+            .thenAccept{
+                arrow1DownRenderable = it
+                arrow1DownRenderable.isShadowCaster = false
+                arrow1DownRenderable.isShadowReceiver = false
+            }
+            .exceptionally {
+                val builder = AlertDialog.Builder(this)
+                builder.setMessage(it.message).setTitle("Error")
+                val dialog = builder.create()
+                dialog.show()
+                return@exceptionally null
+            }
+
+        ViewRenderable
+            .builder()
+            .setView(this, arrow10UpLinearLayout)
+            .build()
+            .thenAccept{
+                arrow10UpRenderable = it
+                arrow10UpRenderable.isShadowCaster = false
+                arrow10UpRenderable.isShadowReceiver = false
+            }
+            .exceptionally {
+                val builder = AlertDialog.Builder(this)
+                builder.setMessage(it.message).setTitle("Error")
+                val dialog = builder.create()
+                dialog.show()
+                return@exceptionally null
+            }
+
+        ViewRenderable
+            .builder()
+            .setView(this, arrow10DownLinearLayout)
+            .build()
+            .thenAccept{
+                arrow10DownRenderable = it
+                arrow10DownRenderable.isShadowCaster = false
+                arrow10DownRenderable.isShadowReceiver = false
             }
             .exceptionally {
                 val builder = AlertDialog.Builder(this)
@@ -252,6 +379,116 @@ class Measurement : AppCompatActivity(), Scene.OnUpdateListener {
                 }
             }
         }
+        fromGroundNodes.clear()
+    }
+
+    private fun tapDistanceFromGround(hitResult: HitResult){
+        clearAllAnchors()
+        val anchor = hitResult.createAnchor()
+        placedAnchors.add(anchor)
+
+        val anchorNode = AnchorNode(anchor).apply {
+            isSmoothed = true
+            setParent(arFragment!!.arSceneView.scene)
+        }
+        placedAnchorNodes.add(anchorNode)
+
+        val transformableNode = TransformableNode(arFragment!!.transformationSystem)
+            .apply{
+                this.rotationController.isEnabled = false
+                this.scaleController.isEnabled = false
+                this.translationController.isEnabled = true
+                this.renderable = renderable
+                setParent(anchorNode)
+            }
+
+        val node = Node()
+            .apply {
+                setParent(transformableNode)
+                this.worldPosition = Vector3(
+                    anchorNode.worldPosition.x,
+                    anchorNode.worldPosition.y,
+                    anchorNode.worldPosition.z)
+                this.renderable = distanceCardViewRenderable
+            }
+
+        val arrow1UpNode = Node()
+            .apply {
+                setParent(node)
+                this.worldPosition = Vector3(
+                    node.worldPosition.x,
+                    node.worldPosition.y+0.1f,
+                    node.worldPosition.z
+                )
+                this.renderable = arrow1UpRenderable
+                this.setOnTapListener { hitTestResult, motionEvent ->
+                    node.worldPosition = Vector3(
+                        node.worldPosition.x,
+                        node.worldPosition.y+0.01f,
+                        node.worldPosition.z
+                    )
+                }
+            }
+
+        val arrow1DownNode = Node()
+            .apply {
+                setParent(node)
+                this.worldPosition = Vector3(
+                    node.worldPosition.x,
+                    node.worldPosition.y-0.08f,
+                    node.worldPosition.z
+                )
+                this.renderable = arrow1DownRenderable
+                this.setOnTapListener { hitTestResult, motionEvent ->
+                    node.worldPosition = Vector3(
+                        node.worldPosition.x,
+                        node.worldPosition.y-0.01f,
+                        node.worldPosition.z
+                    )
+                }
+            }
+
+        val arrow10UpNode = Node()
+            .apply {
+                setParent(node)
+                this.worldPosition = Vector3(
+                    node.worldPosition.x,
+                    node.worldPosition.y+0.18f,
+                    node.worldPosition.z
+                )
+                this.renderable = arrow10UpRenderable
+                this.setOnTapListener { hitTestResult, motionEvent ->
+                    node.worldPosition = Vector3(
+                        node.worldPosition.x,
+                        node.worldPosition.y+0.1f,
+                        node.worldPosition.z
+                    )
+                }
+            }
+
+        val arrow10DownNode = Node()
+            .apply {
+                setParent(node)
+                this.worldPosition = Vector3(
+                    node.worldPosition.x,
+                    node.worldPosition.y-0.167f,
+                    node.worldPosition.z
+                )
+                this.renderable = arrow10DownRenderable
+                this.setOnTapListener { hitTestResult, motionEvent ->
+                    node.worldPosition = Vector3(
+                        node.worldPosition.x,
+                        node.worldPosition.y-0.1f,
+                        node.worldPosition.z
+                    )
+                }
+            }
+
+        fromGroundNodes.add(listOf(node, arrow1UpNode, arrow1DownNode, arrow10UpNode, arrow10DownNode))
+
+        arFragment!!.arSceneView.scene.addOnUpdateListener(this)
+        arFragment!!.arSceneView.scene.addChild(anchorNode)
+        transformableNode.select()
     }
 
     private fun placeAnchor(hitResult: HitResult,
@@ -364,9 +601,22 @@ class Measurement : AppCompatActivity(), Scene.OnUpdateListener {
             distanceModeArrayList[2] -> {
                 measureMultipleDistances()
             }
+            distanceModeArrayList[3] -> {
+                measureDistanceFromGround()
+            }
             else -> {
                 measureDistanceFromCamera()
             }
+        }
+    }
+
+    private fun measureDistanceFromGround(){
+        if (fromGroundNodes.size == 0) return
+        for (node in fromGroundNodes){
+            val textView = (distanceCardViewRenderable!!.view as LinearLayout)
+                .findViewById<TextView>(R.id.distanceCard)
+            val distanceCM = changeUnit(node[0].worldPosition.y + 1.0f, "cm")
+            textView.text = "%.0f".format(distanceCM) + " cm"
         }
     }
 
@@ -461,6 +711,7 @@ class Measurement : AppCompatActivity(), Scene.OnUpdateListener {
                 distanceModeArrayList[0] -> "Find plane and tap somewhere"
                 distanceModeArrayList[1] -> "Find plane and tap 2 points"
                 distanceModeArrayList[2] -> "Find plane and tap multiple points"
+                distanceModeArrayList[3] -> "Find plane and tap point"
                 else -> "???"
             },
             Toast.LENGTH_LONG)
